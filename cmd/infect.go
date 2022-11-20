@@ -29,13 +29,13 @@ import (
 )
 
 var (
-	payload string
-	output  string
+	infectPayload string
+	infectOutput  string
 )
 
-// injectCmd represents the inject command
-var injectCmd = &cobra.Command{
-	Use:   "inject [OPTION...] target",
+// infectCmd represents the infect command
+var infectCmd = &cobra.Command{
+	Use:   "infect <target>",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -43,35 +43,47 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		targetPath := args[0]
-		resultFile, err := elfeditor.NewFileCopy(targetPath)
-		fmt.Printf("Try to inject %s, by payload %s, output %s\n", targetPath, payload, output)
+		targetFile, err := elfeditor.NewFileCopy(targetPath)
 		if err != nil {
 			fmt.Printf("Fail to open a target file: %v\n", err.Error())
 			return
 		}
-		if err = resultFile.SaveAs(output, 0755); err != nil {
-			fmt.Printf("Fail to save result file: %v\n", err.Error())
+		payloadFile, err := elfeditor.NewFileCopy(infectPayload)
+		if err != nil {
+			fmt.Printf("Fail to open a payload file: %v\n", err.Error())
 			return
 		}
-		fmt.Println("Injection successful")
+
+		err = targetFile.InfectBy(payloadFile)
+		if err != nil {
+			fmt.Printf("Fail to infect the target by payload: %v\n", err.Error())
+			return
+		}
+		fmt.Println("Infection target file successful")
+
+		if err = targetFile.SaveAs(infectOutput, 0755); err != nil {
+			fmt.Printf("Fail to save target file: %v\n", err.Error())
+			return
+		}
+		fmt.Println("Save target file successful")
 	},
 }
 
 func init() {
-	injectCmd.Flags().StringVarP(&payload, "payload", "p", "", "payload intel assembler code")
-	injectCmd.Flags().StringVarP(&output, "output", "o", "woody", "result injected binary file")
-	rootCmd.AddCommand(injectCmd)
+	infectCmd.Flags().StringVarP(&infectPayload, "payload", "p", "", "payload intel assembler code")
+	infectCmd.MarkFlagRequired("payload")
+	infectCmd.Flags().StringVarP(&infectOutput, "output", "o", "woody", "result injected binary file")
+	rootCmd.AddCommand(infectCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// injectCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// infectCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// injectCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// infectCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
